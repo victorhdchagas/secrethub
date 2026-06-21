@@ -69,7 +69,8 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 	saltBytes, err := os.ReadFile(filepath.Join(dir, "salt"))
 	if err != nil {
-		http.Error(w, "Corrupt setup: salt file missing", http.StatusInternalServerError)
+		data := loginPageData{Error: "Setup incompleto: refaça 'secrethub setup --force'"}
+		s.loginTmpl.Execute(w, data) // intentionally discarded
 		return
 	}
 
@@ -114,7 +115,11 @@ func (s *Server) tryRecoveryCode(ctx context.Context, dir, code string, w http.R
 	for _, h := range rec.Hashes() {
 		hashData = append(hashData, []byte(h+"\n")...)
 	}
-	os.WriteFile(filepath.Join(dir, "recovery.hashes"), hashData, 0600)
+	if err := os.WriteFile(filepath.Join(dir, "recovery.hashes"), hashData, 0600); err != nil {
+		data := loginPageData{Error: "Erro ao salvar recovery codes, refaça o setup"}
+		s.loginTmpl.Execute(w, data) // intentionally discarded
+		return false
+	}
 	return true
 }
 

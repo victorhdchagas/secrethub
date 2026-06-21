@@ -5,27 +5,73 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SecretHub</title>
 <link rel="stylesheet" href="/static/styles.css">
+<script defer src="/static/alpine.min.js"></script>
 </head>
 <body>
-<div class="container">
+<div class="container" x-data="loginApp()">
   <div class="card login-card">
     <h1>🔐 SecretHub</h1>
     {{if .SetupRequired}}
       <p>SecretHub is not yet configured.</p>
       <p>Run <code>secrethub setup</code> in your terminal to set up your master password, 2FA, and recovery codes.</p>
     {{else}}
-      {{if .Error}}
-      <div class="error">{{.Error}}</div>
-      {{end}}
-      <form action="/api/login" method="POST">
+      {{if .Error}}<div class="error">{{.Error}}</div>{{end}}
+      <form action="/api/login" method="POST" x-on:submit="savePassword()">
         <label for="password">Master Password</label>
-        <input type="password" name="password" id="password" autocomplete="current-password" required>
-        <label for="totp">TOTP Code or Recovery Code</label>
-        <input type="text" name="totp" id="totp" inputmode="numeric" autocomplete="one-time-code" required>
-        <button type="submit">Entrar</button>
+        <input type="password" name="password" id="password" x-model="password" autocomplete="current-password" required>
+        <label class="checkbox-label">
+          <input type="checkbox" x-model="remember">
+          Lembrar senha
+        </label>
+        <label for="totp">TOTP Code</label>
+        <input type="text" name="totp" id="totp" x-model="totp" inputmode="numeric" autocomplete="one-time-code" required>
+        <button type="submit" x-text="loading ? 'Entrando...' : 'Entrar'" :disabled="loading"></button>
+        <p class="saved-info" x-show="saved && !remember">
+          Senha salva detectada. <a href="#" x-on:click.prevent="restorePassword">Usar senha salva</a>
+          &middot; <a href="#" x-on:click.prevent="clearPassword">Limpar</a>
+        </p>
       </form>
     {{end}}
   </div>
 </div>
+<script>
+function revert(s) { return s.split('').reverse().join(''); }
+
+function loadStored() {
+  const s = localStorage.getItem('sh_pw');
+  if (!s) return '';
+  try { return revert(decodeURIComponent(atob(s))); }
+  catch { try { return revert(atob(s)); } catch { return ''; } }
+}
+
+function loginApp() {
+  return {
+    password: '',
+    totp: '',
+    remember: false,
+    loading: false,
+    saved: !!localStorage.getItem('sh_pw'),
+    init() {
+      const pw = loadStored();
+      if (pw) { this.password = pw; this.remember = true; }
+    },
+    savePassword() {
+      if (this.remember) {
+        localStorage.setItem('sh_pw', btoa(encodeURIComponent(revert(this.password))));
+      } else {
+        localStorage.removeItem('sh_pw');
+      }
+      this.loading = true;
+    },
+    restorePassword() { const pw = loadStored(); if (pw) { this.password = pw; this.remember = true; } },
+    clearPassword() {
+      localStorage.removeItem('sh_pw');
+      this.password = '';
+      this.remember = false;
+      this.saved = false;
+    }
+  };
+}
+</script>
 </body>
 </html>

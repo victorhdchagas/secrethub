@@ -3,7 +3,6 @@ package server
 import (
 	"fmt"
 	"html/template"
-	"io/fs"
 	"net/http"
 	"time"
 
@@ -53,8 +52,7 @@ func (s *Server) protected(h http.HandlerFunc) http.Handler {
 }
 
 func (s *Server) routes() {
-	staticFS := mustSubFS(templates.FS, ".")
-	s.mux.Handle("GET /static/", http.FileServer(http.FS(staticFS)))
+	s.mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(templates.FS))))
 
 	s.mux.HandleFunc("GET /", s.handleLoginPage)
 	s.mux.HandleFunc("POST /api/login", s.handleLogin)
@@ -71,14 +69,6 @@ func (s *Server) routes() {
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.mux.ServeHTTP(w, r)
-}
-
-func mustSubFS(fsys fs.FS, dir string) fs.FS {
-	sub, err := fs.Sub(fsys, dir)
-	if err != nil {
-		panic(err)
-	}
-	return sub
 }
 
 func Serve(cfg Config) error {

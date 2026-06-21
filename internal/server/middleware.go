@@ -22,6 +22,10 @@ func (s *Session) Expired() bool {
 	return time.Now().After(s.expires)
 }
 
+func (s *Session) Expires() time.Time {
+	return s.expires
+}
+
 type SessionManager struct {
 	mu       sync.RWMutex
 	sessions map[string]*Session
@@ -68,6 +72,14 @@ func (sm *SessionManager) Get(token string) *Session {
 	return s
 }
 
+func (sm *SessionManager) Refresh(token string) {
+	sm.mu.Lock()
+	if s, ok := sm.sessions[tokenHash(token)]; ok {
+		s.expires = time.Now().Add(sm.timeout)
+	}
+	sm.mu.Unlock()
+}
+
 func (sm *SessionManager) Destroy(token string) {
 	sm.mu.Lock()
 	delete(sm.sessions, tokenHash(token))
@@ -101,6 +113,9 @@ func (sm *SessionManager) Middleware(next http.Handler) http.Handler {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
+
+		sm.Refresh(cookie.Value)
+		w.Header().Set("X-Session-Expires", s.Expires().UTC().Format(time.RFC3339))
 
 		ctx := context.WithValue(r.Context(), sessionCtxKey, s)
 		next.ServeHTTP(w, r.WithContext(ctx))

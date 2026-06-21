@@ -100,6 +100,25 @@ func TestMiddlewareInvalidCookie(t *testing.T) {
 	}
 }
 
+func TestSessionRefresh(t *testing.T) {
+	t.Parallel()
+
+	sm := NewSessionManager(15 * time.Minute)
+	var key [32]byte
+	salt := []byte("test-salt-1234567")
+
+	s, _ := sm.Create(&key, salt)
+	original := s.Expires()
+	time.Sleep(time.Microsecond)
+
+	sm.Refresh(s.Token)
+	refreshed := s.Expires()
+
+	if !refreshed.After(original) {
+		t.Error("expected refreshed expiry to be later")
+	}
+}
+
 func TestMiddlewareValidCookie(t *testing.T) {
 	t.Parallel()
 
@@ -123,5 +142,10 @@ func TestMiddlewareValidCookie(t *testing.T) {
 
 	if rec.Code != http.StatusOK {
 		t.Errorf("expected 200, got %d", rec.Code)
+	}
+
+	expiry := rec.Header().Get("X-Session-Expires")
+	if expiry == "" {
+		t.Error("expected X-Session-Expires header")
 	}
 }
