@@ -35,7 +35,7 @@ func setupTestServer(t *testing.T) (*Server, string) {
 	return s, dir
 }
 
-func TestLoginPageNoSetup(t *testing.T) {
+func TestLoginPageRedirectsToSetup(t *testing.T) {
 	t.Parallel()
 
 	dir := t.TempDir()
@@ -45,11 +45,30 @@ func TestLoginPageNoSetup(t *testing.T) {
 	rec := httptest.NewRecorder()
 	s.ServeHTTP(rec, req)
 
+	if rec.Code != http.StatusFound {
+		t.Errorf("expected 302 redirect to /setup, got %d", rec.Code)
+	}
+	loc := rec.Header().Get("Location")
+	if loc != "/setup" {
+		t.Errorf("expected Location /setup, got %s", loc)
+	}
+}
+
+func TestSetupPage(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	s := New(Config{Host: "127.0.0.1", Port: 0, DataDir: dir})
+
+	req := httptest.NewRequest("GET", "/setup", nil)
+	rec := httptest.NewRecorder()
+	s.ServeHTTP(rec, req)
+
 	if rec.Code != http.StatusOK {
 		t.Errorf("expected 200, got %d", rec.Code)
 	}
-	if !strings.Contains(rec.Body.String(), "secrethub setup") {
-		t.Error("expected setup instructions on page")
+	if !strings.Contains(rec.Body.String(), "SecretHub Setup") {
+		t.Error("expected setup page content")
 	}
 }
 
@@ -65,7 +84,7 @@ func TestLoginPageWithSetup(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Errorf("expected 200, got %d", rec.Code)
 	}
-	if strings.Contains(rec.Body.String(), "secrethub setup") {
+	if strings.Contains(rec.Body.String(), "SecretHub is not yet configured") {
 		t.Error("should not show setup instructions when configured")
 	}
 }

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SecretHub - Setup</title>
+<link rel="stylesheet" href="/static/styles.css">
+<script defer src="/static/alpine.min.js"></script>
+<style>
+.steps { display: flex; gap: 8px; justify-content: center; margin-bottom: 24px; }
+.step-dot { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; background: #21262d; color: #8b949e; }
+.step-dot.active { background: #1f6feb; color: #fff; }
+.step-dot.done { background: #238636; color: #fff; }
+.qr-container { text-align: center; margin: 16px 0; }
+.qr-container img { width: 200px; height: 200px; border-radius: 8px; border: 2px solid #30363d; }
+.qr-fallback { font-size: 12px; color: #8b949e; margin-top: 8px; }
+.manual-key { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 8px 12px; font-family: monospace; font-size: 13px; word-break: break-all; margin: 8px 0; }
+.recovery-list { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 16px; margin: 12px 0; }
+.recovery-list li { font-family: monospace; font-size: 14px; padding: 4px 0; }
+.recovery-list li::marker { color: #f0883e; }
+.confirm-btn { background: #238636; color: #fff; border: none; border-radius: 6px; padding: 10px 20px; font-size: 14px; cursor: pointer; margin-top: 12px; width: 100%; }
+.confirm-btn:hover { background: #2ea043; }
+.password-hint { font-size: 12px; color: #8b949e; margin-top: -8px; }
+</style>
+</head>
+<body>
+<div class="container" x-data="setupApp()">
+  <div class="card login-card" style="max-width:480px">
+    <h1>🔐 SecretHub Setup</h1>
+
+    <div class="steps">
+      <template x-for="(s, i) in ['Password', '2FA', 'Recovery']" :key="i">
+        <div>
+          <div class="step-dot" :class="step > i + 1 ? 'done' : step === i + 1 ? 'active' : ''" x-text="i + 1"></div>
+          <div style="font-size:11px;color:#8b949e;text-align:center;margin-top:4px" x-text="s"></div>
+        </div>
+      </template>
+    </div>
+
+    <div x-show="error" class="error" x-text="error"></div>
+
+    <!-- Step 1: Password -->
+    <div x-show="step === 1">
+      <form x-on:submit.prevent="submitPassword">
+        <label for="pw">Master Password</label>
+        <input type="password" id="pw" x-model="password" autocomplete="new-password" required minlength="4">
+        <label for="pw2" style="margin-top:12px">Confirm Password</label>
+        <input type="password" id="pw2" x-model="confirm" autocomplete="new-password" required minlength="4">
+        <p class="password-hint">Minimum 4 characters</p>
+        <button type="submit" class="confirm-btn" x-text="loading ? 'Configuring...' : 'Continue'" :disabled="loading"></button>
+      </form>
+    </div>
+
+    <!-- Step 2: TOTP -->
+    <div x-show="step === 2">
+      <p style="margin-bottom:12px">Scan the QR code with your authenticator app (Google Authenticator, Authy, etc.)</p>
+
+      <div class="qr-container">
+        <img :src="'/api/setup/qr?url=' + encodeURIComponent(totpUrl)"
+             alt="QR Code" x-show="totpUrl">
+        <p class="qr-fallback">If the QR doesn't load, enter the key manually below.</p>
+      </div>
+
+      <p style="font-size:13px">Or enter this key manually:</p>
+      <div class="manual-key" x-text="totpSecret"></div>
+
+      <form x-on:submit.prevent="verifyTotp" style="margin-top:16px">
+        <label for="code">TOTP Code</label>
+        <input type="text" id="code" x-model="totpCode" inputmode="numeric" autocomplete="one-time-code" required>
+        <button type="submit" class="confirm-btn" x-text="loading ? 'Verifying...' : 'Verify & Continue'" :disabled="loading"></button>
+      </form>
+    </div>
+
+    <!-- Step 3: Recovery Codes -->
+    <div x-show="step === 3">
+      <p>Store these recovery codes in a safe place. Each can only be used once.</p>
+      <ol class="recovery-list">
+        <template x-for="code in recoveryCodes" :key="code">
+          <li x-text="code"></li>
+        </template>
+      </ol>
+      <p style="font-size:12px;color:#8b949e">You won't be able to see these again after this step.</p>
+      <button x-on:click="complete" class="confirm-btn">I've saved them — Enter Dashboard</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function setupApp() {
+  return {
+    step: 1,
+    loading: false,
+    error: '',
+    password: '',
+    confirm: '',
+    totpUrl: '',
+    totpSecret: '',
+    totpCode: '',
+    recoveryCodes: [],
+
+    async submitPassword() {
+      if (this.password !== this.confirm) {
+        this.error = 'Passwords do not match';
+        return;
+      }
+      if (this.password.length < 4) {
+        this.error = 'Password must be at least 4 characters';
+        return;
+      }
+      this.loading = true;
+      this.error = '';
+      try {
+        const res = await fetch('/api/setup', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({password: this.password})
+        });
+        if (!res.ok) { const err = await res.text(); this.error = err; return; }
+        const data = await res.json();
+        this.totpUrl = data.totp_url;
+        this.totpSecret = data.totp_secret;
+        this.recoveryCodes = data.recovery_codes;
+        this.step = 2;
+      } catch { this.error = 'Network error'; }
+      finally { this.loading = false; }
+    },
+
+    async verifyTotp() {
+      if (!this.totpCode) return;
+      this.loading = true;
+      this.error = '';
+      try {
+        const res = await fetch('/api/setup/verify-totp', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({code: this.totpCode, password: this.password})
+        });
+        if (!res.ok) { const err = await res.text(); this.error = err; return; }
+        this.step = 3;
+      } catch { this.error = 'Network error'; }
+      finally { this.loading = false; }
+    },
+
+    complete() {
+      window.location.href = '/dashboard';
+    }
+  };
+}
+</script>
+</body>
+</html>

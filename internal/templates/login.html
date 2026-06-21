@@ -13,7 +13,7 @@
     <h1>🔐 SecretHub</h1>
     {{if .SetupRequired}}
       <p>SecretHub is not yet configured.</p>
-      <p>Run <code>secrethub setup</code> in your terminal to set up your master password, 2FA, and recovery codes.</p>
+      <p><a href="/setup">Click here to set up your master password, 2FA, and recovery codes.</a></p>
     {{else}}
       {{if .Error}}<div class="error">{{.Error}}</div>{{end}}
       <form action="/api/login" method="POST" x-on:submit="savePassword()">

@@ -7,21 +7,43 @@ import (
 	"testing"
 )
 
-func TestServeLoginPage(t *testing.T) {
+func TestServeSetupRedirect(t *testing.T) {
 	t.Parallel()
 
 	s := New(Config{Host: "127.0.0.1", Port: 4949, DataDir: t.TempDir()})
-	server := httptest.NewServer(s.mux)
+	server := httptest.NewServer(s)
 	defer server.Close()
 
-	resp, err := http.Get(server.URL + "/")
+	client := &http.Client{CheckRedirect: func(r *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
+	}}
+
+	resp, err := client.Get(server.URL + "/")
 	if err != nil {
 		t.Fatalf("GET /: %v", err)
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusFound {
+		t.Errorf("expected 302, got %d", resp.StatusCode)
+	}
+}
+
+func TestServeSetupPage(t *testing.T) {
+	t.Parallel()
+
+	s := New(Config{Host: "127.0.0.1", Port: 4949, DataDir: t.TempDir()})
+	server := httptest.NewServer(s)
+	defer server.Close()
+
+	resp, err := http.Get(server.URL + "/setup")
+	if err != nil {
+		t.Fatalf("GET /setup: %v", err)
+	}
+	defer resp.Body.Close()
+
 	if resp.StatusCode != http.StatusOK {
-		t.Errorf("expected status 200, got %d", resp.StatusCode)
+		t.Errorf("expected 200, got %d", resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(resp.Body)

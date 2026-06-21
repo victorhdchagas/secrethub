@@ -18,14 +18,16 @@ type loginPageData struct {
 }
 
 func (s *Server) handleLoginPage(w http.ResponseWriter, r *http.Request) {
-	masterHash := filepath.Join(s.config.DataDir, "master.hash")
-	_, err := os.Stat(masterHash)
-
-	data := loginPageData{
-		SetupRequired: os.IsNotExist(err),
+	if !s.isConfigured() {
+		http.Redirect(w, r, "/setup", http.StatusFound)
+		return
 	}
+	s.loginTmpl.Execute(w, loginPageData{}) // intentionally discarded
+}
 
-	s.loginTmpl.Execute(w, data) // intentionally discarded
+func (s *Server) isConfigured() bool {
+	_, err := os.Stat(filepath.Join(s.config.DataDir, "master.hash"))
+	return err == nil
 }
 
 func (s *Server) handleDashboardPage(w http.ResponseWriter, r *http.Request) {

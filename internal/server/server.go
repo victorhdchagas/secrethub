@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/publiquei/secrethub/internal/auth"
@@ -27,6 +28,7 @@ type Server struct {
 	sessions  *SessionManager
 	tokens    *auth.TokenHandler
 	loginTmpl *template.Template
+	setupTmpl *template.Template
 	dashTmpl  *template.Template
 	rateLimit *RateLimiter
 }
@@ -50,6 +52,8 @@ func New(cfg Config) *Server {
 
 	loginTmpl := template.Must(template.ParseFS(templates.FS, "login.html"))
 	s.loginTmpl = loginTmpl
+	setupTmpl := template.Must(template.ParseFS(templates.FS, "setup.html"))
+	s.setupTmpl = setupTmpl
 	dashTmpl := template.Must(template.ParseFS(templates.FS, "dashboard.html"))
 	s.dashTmpl = dashTmpl
 
@@ -64,6 +68,10 @@ func (s *Server) protected(h http.HandlerFunc) http.Handler {
 func (s *Server) routes() {
 	s.mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(templates.FS))))
 
+	s.mux.HandleFunc("GET /setup", s.handleSetupPage)
+	s.mux.HandleFunc("POST /api/setup", s.handleSetup)
+	s.mux.HandleFunc("POST /api/setup/verify-totp", s.handleSetupVerifyTOTP)
+	s.mux.HandleFunc("GET /api/setup/qr", s.handleSetupQR)
 	s.mux.HandleFunc("GET /", s.handleLoginPage)
 	s.mux.HandleFunc("POST /api/login", s.handleLogin)
 	s.mux.Handle("GET /dashboard", s.protected(s.handleDashboardPage))
@@ -81,7 +89,19 @@ func (s *Server) routes() {
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if !s.isConfigured() && !isSetupPath(r.URL.Path) {
+		// allow through if a valid session cookie exists
+		if cookie, err := r.Cookie("session"); err != nil || s.sessions.Get(cookie.Value) == nil {
+			http.Redirect(w, r, "/setup", http.StatusFound)
+			return
+		}
+	}
 	s.mux.ServeHTTP(w, r)
+}
+
+func isSetupPath(path string) bool {
+	return path == "/setup" || strings.HasPrefix(path, "/api/setup") ||
+		strings.HasPrefix(path, "/static/")
 }
 
 func Serve(cfg Config) error {
@@ -90,7 +110,7 @@ func Serve(cfg Config) error {
 
 	httpServer := &http.Server{
 		Addr:         addr,
-		Handler:      s.mux,
+		Handler:      s,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  30 * time.Second,
