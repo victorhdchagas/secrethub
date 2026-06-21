@@ -36,7 +36,7 @@
 - Vault em disco: sempre criptografado (`secretbox`). Só decriptado em memória durante a sessão.
 - TOTP secret armazenado criptografado com master password (nunca plaintext).
 - Recovery codes: SHA-256 hash (nunca plaintext no disco). Mostrados 1x no setup; reexibir só após reautenticação.
-- Servidor escuta **exclusivamente em `127.0.0.1`** — bind em `0.0.0.0` proibido.
+- Servidor escuta **exclusivamente em `127.0.0.1`** por padrão. Bind em `0.0.0.0` emite warning (permitido apenas com `--host 0.0.0.0` para deploy em container com reverse proxy).
 - Session token: crypto/rand, 32 bytes, armazenado apenas em memória.
 
 ---

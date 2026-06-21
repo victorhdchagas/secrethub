@@ -17,8 +17,7 @@ func serveCmd() {
 	_ = fs.Parse(os.Args[2:]) // intentionally discarded — flag.ExitOnError
 
 	if *host == "0.0.0.0" {
-		fmt.Fprintln(os.Stderr, "Error: binding to 0.0.0.0 is forbidden for security reasons")
-		os.Exit(1)
+		fmt.Fprintln(os.Stderr, "Warning: binding to 0.0.0.0 exposes the server to all network interfaces. Prefer 127.0.0.1 with a reverse proxy.")
 	}
 
 	if (*tlsCert == "") != (*tlsKey == "") {

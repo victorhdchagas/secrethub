@@ -1,0 +1,9 @@
+.git/
+.gitignore
+.gitattributes
+*.md
+bin/
+coverage.out
+coverage.html
+plan/
+docker/

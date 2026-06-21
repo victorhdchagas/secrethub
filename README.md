@@ -168,6 +168,29 @@ secrethub serve --tls-cert /etc/letsencrypt/live/example.com/fullchain.pem \
 
 > ⚠️ **Security notice:** TLS support is experimental and needs refinement. The server does not enforce HTTPS redirects, HSTS headers, or certificate validation best practices. Only use behind a production reverse proxy (Caddy, Nginx, Traefik) that handles TLS termination properly. The built-in TLS is intended for testing and LAN-only use.
 
+### Docker
+
+```bash
+# Build and start
+docker compose -f docker/docker-compose.yml up -d
+
+# Quick disposable test (temp data dir, cleans up on Ctrl+C)
+mkdir -p /tmp/secrethub-test
+docker compose -f docker/docker-compose.yml run --rm \
+  -v /tmp/secrethub-test:/root/.secrethub \
+  -p 4949:4949 \
+  secrethub
+
+# Stop compose services
+docker compose -f docker/docker-compose.yml down
+
+# Multi-arch build
+docker buildx build --platform linux/amd64,linux/arm64 \
+  -f docker/Dockerfile -t secrethub .
+```
+
+Acesse em [http://localhost:4949](http://localhost:4949) — o setup web aparece na primeira execução.
+
 ---
 
 ## Libraries
