@@ -25,6 +25,8 @@ func main() {
 		exportCmd()
 	case "list":
 		listCmd()
+	case "token":
+		tokenCmd()
 	case "version":
 		versionCmd()
 	default:
@@ -38,11 +40,12 @@ func printUsage() {
 	fmt.Fprint(os.Stderr, `SecretHub - Gerenciador de Secrets Pessoal
 
 Usage:
-  secrethub serve          Start the web server
-  secrethub setup          Run the initial setup wizard
-  secrethub export <name>  Export a vault as KEY=VALUE
-  secrethub list           List available vaults
-  secrethub version        Show version
+  secrethub serve              Start the web server
+  secrethub setup              Run the initial setup wizard
+  secrethub export <name>      Export a vault as KEY=VALUE
+  secrethub list               List available vaults
+  secrethub token <subcommand> Manage machine tokens (create/revoke/list)
+  secrethub version            Show version
 `)
 }
 

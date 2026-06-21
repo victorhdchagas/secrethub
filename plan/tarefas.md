@@ -94,6 +94,26 @@
 - [ ] Rate limit: 10 req/min por token (prevenir abuso se exposto)
 - [ ] Documentar no AGENTS.md o fluxo de CI/CD com Machine Token
 
+## 🌐 Web Onboarding (Prompt 8)
+
+> Substitui o wizard CLI por um onboarding completo no navegador.
+> Essencial pro CasaOS: instala e configura sem terminal.
+
+- [ ] **Rota `GET /setup`** — serve o template `setup.html` se `~/.secrethub/` não existir
+- [ ] **Middleware de redirect** — qualquer rota, se não tem setup, redireciona pra `/setup`
+- [ ] **Template `setup.html`** com 3 etapas:
+  - [ ] **Etapa 1: Master Password** — input + confirmar + botão "Avançar"
+  - [ ] **Etapa 2: QR Code + Chave Manual** — renderiza QR code de verdade + chave `JBSWY3...` pra copiar
+  - [ ] **Etapa 3: Recovery Codes** — mostra os 10 códigos + checkbox "Anotei" + "Copiar" + "Imprimir"
+- [ ] **Handler `POST /api/setup`** — recebe password, gera TOTP, salva recovery, finaliza setup
+- [ ] **Handler `POST /api/setup/verify-totp`** — verifica se o TOTP configurado no celular tá correto (validação extra antes de finalizar)
+- [ ] **CLI `secrethub setup` removido** — setup exclusivamente web
+- [ ] **Redirecionamento pós-setup** — vai direto pro dashboard logado
+
+## 📦 Docker + CasaOS (Prompt 9 — futuro)
+
+> Pendente: Dockerfile multi-arch + GitHub Actions push + app CasaOS
+
 ---
 
 ## Ordem recomendada de prompts
@@ -107,6 +127,7 @@
 | 5 | CLI export: stdout + --dotenv + --run | ~150 |
 | 6 | Polish: timeout, CSS, cross-compile, testes | ~100 |
 | **7** | **Machine Token: token create/revoke + endpoint /api/export/{vault}?token=** | **~120** |
+| **8** | **🌐 Web Onboarding: setup.html + POST /api/setup + middleware redirect** | **~180** |
 
 ---
 

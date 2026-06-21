@@ -164,6 +164,38 @@ function dashboardApp() {
       this._navLock = true
       location.hash = '#/settings'
       this._navLock = false
+      this.loadTokens()
+    },
+
+    // ── Machine Tokens ──
+
+    tokens: [],
+    newToken: '',
+
+    async loadTokens() {
+      const data = await this.req('GET', '/tokens')
+      if (data) this.tokens = data.tokens || []
+    },
+
+    async createToken() {
+      const data = await this.req('POST', '/tokens')
+      if (!data) return
+      this.newToken = data.token
+      this.loadTokens()
+    },
+
+    async revokeToken(prefix) {
+      if (!confirm('Revogar token ' + prefix + '?')) return
+      const res = await fetch('/api/tokens/' + prefix, { method: 'DELETE' })
+      if (res.status === 401) { window.location.href = '/'; return }
+      if (!res.ok) { this.showToast(await res.text()); return }
+      this.newToken = ''
+      this.loadTokens()
+    },
+
+    copyToken() {
+      navigator.clipboard.writeText(this.newToken)
+      this.showToast('Token copiado!')
     }
   }
 }

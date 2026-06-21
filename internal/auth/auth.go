@@ -19,6 +19,13 @@ type RecoveryManager interface {
 	Hashes() []string
 }
 
+type TokenManager interface {
+	Generate(ctx context.Context, vaultKey *[32]byte) (string, error)
+	Validate(ctx context.Context, token string) (*[32]byte, error)
+	Revoke(ctx context.Context, prefix string) error
+	List(ctx context.Context) ([]TokenInfo, error)
+}
+
 type TOTPKey struct {
 	Secret  string
 	URL     string

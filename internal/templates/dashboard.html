@@ -84,7 +84,32 @@
 
       <div x-show="view === 'settings'" x-transition.opacity.duration.200ms>
         <h2>Settings</h2>
-        <p>Settings will be available in a future update.</p>
+
+        <h3 style="margin-top:24px">Machine Tokens (CI/CD)</h3>
+        <p class="hint">Tokens permitem exportar vaults sem sessão web. Cada token é mostrado uma única vez.</p>
+
+        <table x-show="tokens.length > 0">
+          <thead><tr><th>Prefixo</th><th>Criado em</th><th>Ações</th></tr></thead>
+          <tbody>
+            <template x-for="t in tokens" :key="t.prefix">
+              <tr>
+                <td><code x-text="t.prefix"></code></td>
+                <td x-text="t.created_at"></td>
+                <td><button x-on:click="revokeToken(t.prefix)" class="btn-danger">Revogar</button></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+        <p x-show="tokens.length === 0" class="hint">Nenhum token cadastrado.</p>
+
+        <button x-on:click="createToken" :disabled="loading" style="margin-top:12px">+ Gerar Token</button>
+
+        <div x-show="newToken" class="token-reveal" x-transition.opacity.duration.300ms>
+          <p class="warning">⚠️ Este token será mostrado apenas uma vez. Copie agora!</p>
+          <code class="token-value" x-text="newToken"></code>
+          <button x-on:click="copyToken" style="margin-left:8px">📋 Copiar</button>
+          <button x-on:click="newToken = ''" style="margin-left:8px">Fechar</button>
+        </div>
       </div>
     </main>
   </div>

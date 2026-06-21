@@ -70,7 +70,8 @@ internal/
 │   └── store_test.go
 └── templates/
     ├── embed.go                   ← //go:embed dos templates
-    ├── login.html                 ← Página de login + setup wizard
+    ├── setup.html                 ← Wizard onboarding (3 etapas: password → QR code → recovery)
+    ├── login.html                 ← Página de login
     ├── dashboard.html             ← Home + vault editor + settings (navegação por hash)
     └── styles.css                 ← Dark mode inline
 ```
@@ -85,12 +86,24 @@ internal/
 ## Fluxo de Dados
 
 ```
-Setup (1ª execução):
-  CLI wizard
+Setup (1ª execução - web onboarding):
+  GET /setup → renderiza setup.html (etapa 1: password)
+    ↓
+  POST /api/setup (etapa 1: password)
     → bcrypt(master_password) → master.hash
-    → totp.Generate() → print QR code
+    → totp.Generate() → salva TOTP secret (criptografado)
     → 10 recovery codes → SHA-256 → recovery.hashes
     → Cria ~/.secrethub/vaults/ vazio
+    → Retorna QR code URL + chave manual
+    ↓
+  setup.html etapa 2: exibe QR code + chave manual + input pra validar TOTP
+    ↓
+  POST /api/setup/verify-totp { code }
+    → totp.Validate(code) → se válido, finaliza setup
+    → Redireciona pro dashboard logado
+
+Redirecionamento:
+  Se ~/.secrethub/ não existe → qualquer rota vai pra /setup
 
 Login:
   POST /api/login { password, totp_code }
@@ -161,7 +174,7 @@ golangci-lint run ./...
 
 ---
 
-## Ordem de Implementação (6 Prompts)
+## Ordem de Implementação (8 Prompts)
 
 | Prompt | Arquivos | ~Linhas |
 |---|---|---|
@@ -171,7 +184,9 @@ golangci-lint run ./...
 | **4** Dashboard: `server/handlers.go` + `server/middleware.go` + templates HTML | `handlers.go`, `middleware.go`, `login.html`, `dashboard.html` | ~400 |
 | **5** CLI export: `secrethub export` (stdout, --dotenv, --run) | Extensão do `main.go` + `vault/export.go` | ~150 |
 | **6** Polish: timeout 15min, CSS, cross-compile, `golangci-lint` | Ajustes nos arquivos existentes | ~100 |
-| **🧪** Testes: escritos JUNTO com cada prompt acima (não deixar pro final) | `_test.go` em cada package | ~400 |
+| **7** | **Machine Token: `auth/token.go` + endpoint `/api/export/{vault}?token=` + rate limit** | **~120** |
+| **8** | **🌐 Web Onboarding: `setup.html` + `POST /api/setup` + middleware redirect + remover CLI setup** | **~180** |
+| **🧪** | Testes: escritos JUNTO com cada prompt acima (não deixar pro final) | ~500 |
 
 ---
 

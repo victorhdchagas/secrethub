@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/publiquei/secrethub/internal/vault"
 )
@@ -130,8 +131,37 @@ func (s *Server) handleDeleteKey(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleExportVault(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
-	sess := SessionFromContext(r.Context())
-	v, err := loadDecryptedVault(sess.VaultKey, s.store, r.Context(), name)
+
+	var vaultKey *[32]byte
+
+	if cookie, err := r.Cookie("session"); err == nil {
+		if sess := s.sessions.Get(cookie.Value); sess != nil {
+			s.sessions.Refresh(cookie.Value)
+			w.Header().Set("X-Session-Expires", sess.Expires().UTC().Format(time.RFC3339))
+			vaultKey = sess.VaultKey
+		}
+	}
+
+	if vaultKey == nil {
+		if token := r.URL.Query().Get("token"); token != "" {
+			if !s.rateLimit.Allow("token:" + token) {
+				w.Header().Set("Retry-After", "60")
+				http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
+				return
+			}
+			var err error
+			vaultKey, err = s.tokens.Validate(r.Context(), token)
+			if err != nil {
+				http.Error(w, "Invalid token", http.StatusUnauthorized)
+				return
+			}
+		} else {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+	}
+
+	v, err := loadDecryptedVault(vaultKey, s.store, r.Context(), name)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			http.Error(w, "Vault not found", http.StatusNotFound)
