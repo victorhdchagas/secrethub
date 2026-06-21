@@ -40,6 +40,17 @@ func (s *Store) Load(ctx context.Context, name string) ([]byte, error) {
 	return data, nil
 }
 
+func (s *Store) Delete(ctx context.Context, name string) error {
+	path := s.path(name)
+	if err := os.Remove(path); err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("vault %s not found", name)
+		}
+		return fmt.Errorf("delete vault %s: %w", name, err)
+	}
+	return nil
+}
+
 func (s *Store) List(ctx context.Context) ([]string, error) {
 	entries, err := os.ReadDir(s.BaseDir)
 	if err != nil {

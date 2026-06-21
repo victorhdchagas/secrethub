@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SecretHub - Dashboard</title>
+<link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<div id="app">
+  <header>
+    <strong>🔐 SecretHub</strong>
+    <span class="header-right">
+      <a href="#/settings" class="link">Settings</a>
+      <a href="/api/logout" class="link">Sair</a>
+    </span>
+  </header>
+  <div class="layout">
+    <aside>
+      <h3>Vaults</h3>
+      <ul id="vault-list"></ul>
+      <form id="new-vault-form" class="inline-form">
+        <input type="text" id="new-vault-name" placeholder="New vault name" required>
+        <button type="submit">+</button>
+      </form>
+    </aside>
+    <main id="main-content">
+      <div id="home-view">
+        <h2>Welcome to SecretHub</h2>
+        <p>Select a vault from the sidebar or create a new one.</p>
+      </div>
+      <div id="vault-view" style="display:none">
+        <div class="vault-header">
+          <h2 id="vault-name"></h2>
+          <div class="vault-actions">
+            <button id="export-btn">Export .env</button>
+            <button id="copy-all-btn">Copy All</button>
+          </div>
+        </div>
+        <table id="keys-table">
+          <thead><tr><th>Key</th><th>Value</th><th>Actions</th></tr></thead>
+          <tbody id="keys-body"></tbody>
+        </table>
+        <form id="new-key-form" class="inline-form">
+          <input type="text" id="new-key" placeholder="Key" required>
+          <input type="text" id="new-value" placeholder="Value">
+          <button type="submit">+ Add</button>
+        </form>
+        <div class="save-bar">
+          <button id="save-btn">💾 Save</button>
+        </div>
+      </div>
+      <div id="settings-view" style="display:none">
+        <h2>Settings</h2>
+        <p>Settings will be available in a future update.</p>
+      </div>
+    </main>
+  </div>
+</div>
+<script>
+const API = { base: "/api" };
+
+async function req(method, path, body) {
+  const opts = { method, headers: {} };
+  if (body) { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
+  const res = await fetch(API.base + path, opts);
+  if (res.status === 401) { window.location.href = "/"; return null; }
+  if (!res.ok) { const err = await res.text(); alert(err); return null; }
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+async function loadVaultList() {
+  const data = await req("GET", "/vaults");
+  if (!data) return;
+  const list = document.getElementById("vault-list");
+  list.innerHTML = "";
+  for (const name of data.vaults || []) {
+    const li = document.createElement("li");
+    const a = document.createElement("a");
+    a.href = "#/vault/" + encodeURIComponent(name);
+    a.textContent = name;
+    a.onclick = (e) => { e.preventDefault(); navigate(name); };
+    li.appendChild(a);
+    list.appendChild(li);
+  }
+}
+
+async function navigate(name) {
+  window.location.hash = "#/vault/" + encodeURIComponent(name);
+  const data = await req("GET", "/vault/" + encodeURIComponent(name));
+  if (!data) return;
+  showVault(name, data);
+}
+
+function showVault(name, data) {
+  document.getElementById("home-view").style.display = "none";
+  document.getElementById("vault-view").style.display = "block";
+  document.getElementById("settings-view").style.display = "none";
+  document.getElementById("vault-name").textContent = name;
+  const tbody = document.getElementById("keys-body");
+  tbody.innerHTML = "";
+  for (const [key, value] of Object.entries(data)) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${key}</td>
+      <td><input type="password" value="${value}" class="val-input" data-key="${key}"></td>
+      <td>
+        <button class="toggle-v" data-key="${key}">👁️</button>
+        <button class="copy-k" data-key="${key}">📋</button>
+        <button class="del-k" data-key="${key}">🗑️</button>
+      </td>`;
+    tbody.appendChild(tr);
+  }
+  document.getElementById("vault-name").dataset.name = name;
+}
+
+document.addEventListener("click", (e) => {
+  if (e.target.classList.contains("toggle-v")) {
+    const inp = e.target.closest("tr").querySelector(".val-input");
+    inp.type = inp.type === "password" ? "text" : "password";
+  }
+  if (e.target.classList.contains("copy-k")) {
+    const inp = e.target.closest("tr").querySelector(".val-input");
+    navigator.clipboard.writeText(inp.value);
+  }
+  if (e.target.classList.contains("del-k")) {
+    const name = document.getElementById("vault-name").dataset.name;
+    const key = e.target.dataset.key;
+    if (confirm("Delete key " + key + "?")) {
+      req("DELETE", "/vault/" + encodeURIComponent(name) + "/keys/" + encodeURIComponent(key)).then(() => navigate(name));
+    }
+  }
+});
+
+document.getElementById("new-vault-form").onsubmit = async (e) => {
+  e.preventDefault();
+  const name = document.getElementById("new-vault-name").value.trim();
+  if (!name) return;
+  await req("POST", "/vault/" + encodeURIComponent(name));
+  document.getElementById("new-vault-name").value = "";
+  loadVaultList();
+};
+
+document.getElementById("new-key-form").onsubmit = async (e) => {
+  e.preventDefault();
+  const name = document.getElementById("vault-name").dataset.name;
+  const key = document.getElementById("new-key").value.trim();
+  const value = document.getElementById("new-value").value.trim();
+  if (!key) return;
+  await req("PUT", "/vault/" + encodeURIComponent(name) + "/keys/" + encodeURIComponent(key), { value });
+  document.getElementById("new-key").value = "";
+  document.getElementById("new-value").value = "";
+  navigate(name);
+};
+
+document.getElementById("save-btn").onclick = async () => {
+  const name = document.getElementById("vault-name").dataset.name;
+  if (!name) return;
+  const inputs = document.querySelectorAll(".val-input");
+  const data = {};
+  for (const inp of inputs) data[inp.dataset.key] = inp.value;
+  await req("POST", "/vault/" + encodeURIComponent(name), data);
+  alert("Saved!");
+};
+
+document.getElementById("export-btn").onclick = async () => {
+  const name = document.getElementById("vault-name").dataset.name;
+  if (!name) return;
+  const res = await fetch(API.base + "/vault/" + encodeURIComponent(name) + "/export");
+  if (res.ok) {
+    const text = await res.text();
+    const blob = new Blob([text], { type: "text/plain" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name + ".env";
+    a.click();
+  }
+};
+
+document.getElementById("copy-all-btn").onclick = async () => {
+  const name = document.getElementById("vault-name").dataset.name;
+  if (!name) return;
+  const res = await fetch(API.base + "/vault/" + encodeURIComponent(name) + "/export");
+  if (res.ok) {
+    const text = await res.text();
+    navigator.clipboard.writeText(text);
+    alert("Copied!");
+  }
+};
+
+window.addEventListener("hashchange", () => {
+  const hash = window.location.hash;
+  if (hash.startsWith("#/vault/")) {
+    const name = decodeURIComponent(hash.slice(7));
+    navigate(name);
+  } else if (hash === "#/settings") {
+    document.getElementById("home-view").style.display = "none";
+    document.getElementById("vault-view").style.display = "none";
+    document.getElementById("settings-view").style.display = "block";
+  } else {
+    document.getElementById("home-view").style.display = "block";
+    document.getElementById("vault-view").style.display = "none";
+    document.getElementById("settings-view").style.display = "none";
+  }
+});
+
+loadVaultList();
+</script>
+</body>
+</html>

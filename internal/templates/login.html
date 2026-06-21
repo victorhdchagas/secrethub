@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SecretHub</title>
+<link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<div class="container">
+  <div class="card login-card">
+    <h1>🔐 SecretHub</h1>
+    {{if .SetupRequired}}
+      <p>SecretHub is not yet configured.</p>
+      <p>Run <code>secrethub setup</code> in your terminal to set up your master password, 2FA, and recovery codes.</p>
+    {{else}}
+      {{if .Error}}
+      <div class="error">{{.Error}}</div>
+      {{end}}
+      <form action="/api/login" method="POST">
+        <label for="password">Master Password</label>
+        <input type="password" name="password" id="password" autocomplete="current-password" required>
+        <label for="totp">TOTP Code or Recovery Code</label>
+        <input type="text" name="totp" id="totp" inputmode="numeric" autocomplete="one-time-code" required>
+        <button type="submit">Entrar</button>
+      </form>
+    {{end}}
+  </div>
+</div>
+</body>
+</html>

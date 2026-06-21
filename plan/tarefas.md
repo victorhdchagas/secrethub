@@ -79,6 +79,21 @@
   ```
 - [ ] Testar: `secrethub serve` rodando no RPi, acessar `localhost:4949`
 
+## 🔑 Machine Token (CI/CD)
+
+> Permite que o CI/CD (GitHub Actions) acesse o vault remotamente sem navegador.
+> Útil pra deploy na Oracle VPS: CI puxa o `.env` do RPi via HTTPS e manda pra produção.
+
+- [ ] `~/.secrethub/machine.tokens` — arquivo com tokens bcrypt (hash, label, scopo)
+- [ ] CLI: `secrethub token create <label>` — gera token + mostra uma vez
+- [ ] CLI: `secrethub token revoke <label>` — remove token
+- [ ] Endpoint: `GET /api/export/{vault}?token=<token>` — exporta vault via HTTP
+  - [ ] Valida token (bcrypt.Verify contra machine.tokens)
+  - [ ] Retorna `KEY=VALUE\n` (text/plain)
+- [ ] Endpoint protegido: só funciona se token for válido (não precisa de sessão)
+- [ ] Rate limit: 10 req/min por token (prevenir abuso se exposto)
+- [ ] Documentar no AGENTS.md o fluxo de CI/CD com Machine Token
+
 ---
 
 ## Ordem recomendada de prompts
@@ -91,6 +106,7 @@
 | 4 | Dashboard: login + home + vault editor + settings | ~400 |
 | 5 | CLI export: stdout + --dotenv + --run | ~150 |
 | 6 | Polish: timeout, CSS, cross-compile, testes | ~100 |
+| **7** | **Machine Token: token create/revoke + endpoint /api/export/{vault}?token=** | **~120** |
 
 ---
 

@@ -10,6 +10,7 @@ import (
 
 	"github.com/publiquei/secrethub/internal/auth"
 	"github.com/publiquei/secrethub/internal/server"
+	"github.com/publiquei/secrethub/internal/vault"
 )
 
 const version = "0.1.0"
@@ -64,8 +65,9 @@ func serveCmd() {
 	}
 
 	cfg := server.Config{
-		Host: *host,
-		Port: *port,
+		Host:    *host,
+		Port:    *port,
+		DataDir: secrethubDir(),
 	}
 
 	if err := server.Serve(cfg); err != nil {
@@ -153,6 +155,16 @@ func setupCmd() {
 	}
 	if err := os.WriteFile(filepath.Join(dir, "recovery.hashes"), hashData, 0600); err != nil {
 		fmt.Fprintf(os.Stderr, "Error saving recovery.hashes: %v\n", err)
+		os.Exit(1)
+	}
+
+	salt, err := vault.NewSalt()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error generating salt: %v\n", err)
+		os.Exit(1)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "salt"), salt, 0600); err != nil {
+		fmt.Fprintf(os.Stderr, "Error saving salt: %v\n", err)
 		os.Exit(1)
 	}
 
