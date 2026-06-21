@@ -14,9 +14,11 @@ import (
 )
 
 type Config struct {
-	Host    string
-	Port    int
-	DataDir string
+	Host        string
+	Port        int
+	DataDir     string
+	TLSCertFile string
+	TLSKeyFile  string
 }
 
 type Server struct {
@@ -114,6 +116,11 @@ func Serve(cfg Config) error {
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  30 * time.Second,
+	}
+
+	if cfg.TLSCertFile != "" && cfg.TLSKeyFile != "" {
+		fmt.Printf("SecretHub listening on https://%s\n", addr)
+		return httpServer.ListenAndServeTLS(cfg.TLSCertFile, cfg.TLSKeyFile)
 	}
 
 	fmt.Printf("SecretHub listening on http://%s\n", addr)

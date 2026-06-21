@@ -95,7 +95,7 @@ Built with Alpine.js — no build step, no bundler. Dark mode by default.
 ```
 ~/.secrethub/
 ├── master.hash          bcrypt hash
-├── totp.secret          TOTP shared secret
+├── totp.secret          TOTP shared secret (encrypted with vault key)
 ├── recovery.hashes      SHA-256 of recovery codes
 ├── salt                 argon2id salt (16 bytes)
 ├── machine.tokens       CI/CD tokens (encrypted JSON)
@@ -110,7 +110,8 @@ Built with Alpine.js — no build step, no bundler. Dark mode by default.
 ## Commands
 
 ```
-secrethub serve              Start web server (default :4949)
+secrethub serve [--port 4949] [--host 127.0.0.1] [--tls-cert file --tls-key file]
+                            Start web server (default :4949)
 secrethub setup              CLI setup wizard
 secrethub export <name>      Export vault as KEY=VALUE
 secrethub export <name> --dotenv   Write .env file
@@ -155,6 +156,17 @@ User=pi
 [Install]
 WantedBy=multi-user.target
 ```
+
+### TLS (experimental, use with caution)
+
+HTTPS via `--tls-cert` and `--tls-key`:
+
+```bash
+secrethub serve --tls-cert /etc/letsencrypt/live/example.com/fullchain.pem \
+                --tls-key /etc/letsencrypt/live/example.com/privkey.pem
+```
+
+> ⚠️ **Security notice:** TLS support is experimental and needs refinement. The server does not enforce HTTPS redirects, HSTS headers, or certificate validation best practices. Only use behind a production reverse proxy (Caddy, Nginx, Traefik) that handles TLS termination properly. The built-in TLS is intended for testing and LAN-only use.
 
 ---
 

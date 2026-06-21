@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/boombuler/barcode/qr"
 	"github.com/victorhdchagas/secrethub/internal/auth"
@@ -72,7 +71,24 @@ func (s *Server) handleSetup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := os.WriteFile(filepath.Join(dir, "totp.secret"), []byte(key.Secret), 0600); err != nil {
+	salt, err := vault.NewSalt()
+	if err != nil {
+		http.Error(w, "Salt error", http.StatusInternalServerError)
+		return
+	}
+	if err := os.WriteFile(filepath.Join(dir, "salt"), salt, 0600); err != nil {
+		http.Error(w, "Write error", http.StatusInternalServerError)
+		return
+	}
+
+	// derive vault key and encrypt TOTP secret
+	vk := vault.DeriveKey(body.Password, salt)
+	encSecret, err := vault.Encrypt([]byte(key.Secret), vk)
+	if err != nil {
+		http.Error(w, "Encryption error", http.StatusInternalServerError)
+		return
+	}
+	if err := os.WriteFile(filepath.Join(dir, "totp.secret"), encSecret, 0600); err != nil {
 		http.Error(w, "Write error", http.StatusInternalServerError)
 		return
 	}
@@ -82,16 +98,6 @@ func (s *Server) handleSetup(w http.ResponseWriter, r *http.Request) {
 		hashData = append(hashData, []byte(h+"\n")...)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "recovery.hashes"), hashData, 0600); err != nil {
-		http.Error(w, "Write error", http.StatusInternalServerError)
-		return
-	}
-
-	salt, err := vault.NewSalt()
-	if err != nil {
-		http.Error(w, "Salt error", http.StatusInternalServerError)
-		return
-	}
-	if err := os.WriteFile(filepath.Join(dir, "salt"), salt, 0600); err != nil {
 		http.Error(w, "Write error", http.StatusInternalServerError)
 		return
 	}
@@ -122,25 +128,34 @@ func (s *Server) handleSetupVerifyTOTP(w http.ResponseWriter, r *http.Request) {
 
 	dir := s.config.DataDir
 
-	secretBytes, err := os.ReadFile(filepath.Join(dir, "totp.secret"))
+	saltBytes, err := os.ReadFile(filepath.Join(dir, "salt"))
+	if err != nil {
+		if os.IsNotExist(err) {
+			http.Error(w, "Setup required", http.StatusPreconditionFailed)
+		} else {
+			http.Error(w, "Setup incomplete", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	vk := vault.DeriveKey(body.Password, saltBytes)
+
+	encSecret, err := os.ReadFile(filepath.Join(dir, "totp.secret"))
 	if err != nil {
 		http.Error(w, "Setup required", http.StatusPreconditionFailed)
 		return
 	}
 
-	totpSecret := strings.TrimSpace(string(secretBytes))
-	if !s.totp.Validate(r.Context(), totpSecret, body.Code) {
+	decSecret, err := vault.Decrypt(encSecret, vk)
+	if err != nil {
+		http.Error(w, "Password mismatch with setup step 1", http.StatusUnauthorized)
+		return
+	}
+
+	if !s.totp.Validate(r.Context(), string(decSecret), body.Code) {
 		http.Error(w, "Invalid TOTP code", http.StatusUnauthorized)
 		return
 	}
-
-	saltBytes, err := os.ReadFile(filepath.Join(dir, "salt"))
-	if err != nil {
-		http.Error(w, "Setup incomplete", http.StatusInternalServerError)
-		return
-	}
-
-	vk := vault.DeriveKey(body.Password, saltBytes)
 
 	session, err := s.sessions.Create(vk, saltBytes)
 	if err != nil {

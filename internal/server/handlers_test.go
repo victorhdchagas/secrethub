@@ -24,10 +24,13 @@ func setupTestServer(t *testing.T) (*Server, string) {
 
 	totp := auth.NewTOTPHandler()
 	key, _ := totp.Generate(ctx, "test")
-	os.WriteFile(filepath.Join(dir, "totp.secret"), []byte(key.Secret), 0600)
 
 	salt := []byte("test-salt-value!")
 	os.WriteFile(filepath.Join(dir, "salt"), salt, 0600)
+
+	vk := vault.DeriveKey("password", salt)
+	encSecret, _ := vault.Encrypt([]byte(key.Secret), vk)
+	os.WriteFile(filepath.Join(dir, "totp.secret"), encSecret, 0600)
 
 	os.MkdirAll(filepath.Join(dir, "vaults"), 0700)
 

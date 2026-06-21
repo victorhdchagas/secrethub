@@ -56,19 +56,6 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	secretBytes, err := os.ReadFile(filepath.Join(dir, "totp.secret"))
-	if err != nil {
-		http.Error(w, "Setup required", http.StatusPreconditionFailed)
-		return
-	}
-	totpSecret := strings.TrimSpace(string(secretBytes))
-
-	if !s.totp.Validate(r.Context(), totpSecret, totpCode) {
-		if !s.tryRecoveryCode(r.Context(), dir, totpCode, w) {
-			return
-		}
-	}
-
 	saltBytes, err := os.ReadFile(filepath.Join(dir, "salt"))
 	if err != nil {
 		data := loginPageData{Error: "Setup incompleto: refaça 'secrethub setup --force'"}
@@ -77,6 +64,25 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	vk := vault.DeriveKey(password, saltBytes)
+
+	encSecret, err := os.ReadFile(filepath.Join(dir, "totp.secret"))
+	if err != nil {
+		http.Error(w, "Setup required", http.StatusPreconditionFailed)
+		return
+	}
+
+	decSecret, err := vault.Decrypt(encSecret, vk)
+	if err != nil {
+		data := loginPageData{Error: "Invalid password or TOTP code"}
+		s.loginTmpl.Execute(w, data) // intentionally discarded
+		return
+	}
+
+	if !s.totp.Validate(r.Context(), string(decSecret), totpCode) {
+		if !s.tryRecoveryCode(r.Context(), dir, totpCode, w) {
+			return
+		}
+	}
 
 	session, err := s.sessions.Create(vk, saltBytes)
 	if err != nil {

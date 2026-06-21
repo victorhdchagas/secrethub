@@ -12,6 +12,8 @@ func serveCmd() {
 	fs := flag.NewFlagSet("serve", flag.ExitOnError)
 	port := fs.Int("port", 4949, "Server port")
 	host := fs.String("host", "127.0.0.1", "Bind address")
+	tlsCert := fs.String("tls-cert", "", "TLS certificate file (enables HTTPS)")
+	tlsKey := fs.String("tls-key", "", "TLS private key file (enables HTTPS)")
 	_ = fs.Parse(os.Args[2:]) // intentionally discarded — flag.ExitOnError
 
 	if *host == "0.0.0.0" {
@@ -19,10 +21,17 @@ func serveCmd() {
 		os.Exit(1)
 	}
 
+	if (*tlsCert == "") != (*tlsKey == "") {
+		fmt.Fprintln(os.Stderr, "Error: --tls-cert and --tls-key must be used together")
+		os.Exit(1)
+	}
+
 	cfg := server.Config{
-		Host:    *host,
-		Port:    *port,
-		DataDir: secrethubDir(),
+		Host:        *host,
+		Port:        *port,
+		DataDir:     secrethubDir(),
+		TLSCertFile: *tlsCert,
+		TLSKeyFile:  *tlsKey,
 	}
 
 	if err := server.Serve(cfg); err != nil {

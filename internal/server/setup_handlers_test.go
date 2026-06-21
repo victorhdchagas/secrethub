@@ -12,6 +12,7 @@ import (
 
 	"github.com/pquerna/otp/totp"
 	"github.com/victorhdchagas/secrethub/internal/auth"
+	"github.com/victorhdchagas/secrethub/internal/vault"
 )
 
 func TestHandleSetup_Password(t *testing.T) {
@@ -56,6 +57,26 @@ func TestHandleSetup_Password(t *testing.T) {
 				}
 				if _, err := os.Stat(filepath.Join(dir, "vaults")); err != nil {
 					t.Error("vaults dir not created")
+				}
+				// verify totp.secret is encrypted (not plaintext)
+				encBytes, err := os.ReadFile(filepath.Join(dir, "totp.secret"))
+				if err != nil {
+					t.Fatal("failed to read totp.secret")
+				}
+				if len(encBytes) < vault.NonceLen+1 {
+					t.Error("totp.secret too short, expected encrypted data")
+				}
+				saltBytes, err := os.ReadFile(filepath.Join(dir, "salt"))
+				if err != nil {
+					t.Fatal("failed to read salt")
+				}
+				vk := vault.DeriveKey("mypassword", saltBytes)
+				decrypted, err := vault.Decrypt(encBytes, vk)
+				if err != nil {
+					t.Error("failed to decrypt totp.secret with derived key")
+				}
+				if len(decrypted) == 0 {
+					t.Error("decrypted totp.secret is empty")
 				}
 			},
 		},
@@ -147,7 +168,9 @@ func TestHandleSetupVerifyTOTP(t *testing.T) {
 				ctx := context.Background()
 				hash, _ := hasher.Hash(ctx, "mypassword")
 				os.WriteFile(filepath.Join(dir, "master.hash"), []byte(hash), 0600)
-				os.WriteFile(filepath.Join(dir, "totp.secret"), []byte(totpKey.Secret), 0600)
+				vk := vault.DeriveKey("mypassword", []byte("test-salt-value!"))
+				encSecret, _ := vault.Encrypt([]byte(totpKey.Secret), vk)
+				os.WriteFile(filepath.Join(dir, "totp.secret"), encSecret, 0600)
 				os.WriteFile(filepath.Join(dir, "salt"), salt, 0600)
 				rec := auth.NewRecoveryHandler(nil)
 				rec.Generate(ctx)
@@ -198,7 +221,9 @@ func TestHandleSetupVerifyTOTP(t *testing.T) {
 				ctx := context.Background()
 				hash, _ := hasher.Hash(ctx, "pw")
 				os.WriteFile(filepath.Join(dir, "master.hash"), []byte(hash), 0600)
-				os.WriteFile(filepath.Join(dir, "totp.secret"), []byte(totpKey.Secret), 0600)
+				vk := vault.DeriveKey("pw", []byte("test-salt-value!"))
+				encSecret, _ := vault.Encrypt([]byte(totpKey.Secret), vk)
+				os.WriteFile(filepath.Join(dir, "totp.secret"), encSecret, 0600)
 				os.WriteFile(filepath.Join(dir, "salt"), salt, 0600)
 			},
 			body:   `{"code":"000000","password":"pw"}`,
