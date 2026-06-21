@@ -9,7 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/publiquei/secrethub/internal/vault"
+	"github.com/victorhdchagas/secrethub/internal/vault"
 )
 
 func exportCmd() {

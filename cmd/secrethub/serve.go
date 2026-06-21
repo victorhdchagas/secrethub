@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/publiquei/secrethub/internal/server"
+	"github.com/victorhdchagas/secrethub/internal/server"
 )
 
 func serveCmd() {

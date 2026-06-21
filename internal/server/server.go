@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/publiquei/secrethub/internal/auth"
-	"github.com/publiquei/secrethub/internal/templates"
-	"github.com/publiquei/secrethub/internal/vault"
+	"github.com/victorhdchagas/secrethub/internal/auth"
+	"github.com/victorhdchagas/secrethub/internal/templates"
+	"github.com/victorhdchagas/secrethub/internal/vault"
 )
 
 type Config struct {

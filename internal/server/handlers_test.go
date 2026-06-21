@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/publiquei/secrethub/internal/auth"
-	"github.com/publiquei/secrethub/internal/vault"
+	"github.com/victorhdchagas/secrethub/internal/auth"
+	"github.com/victorhdchagas/secrethub/internal/vault"
 )
 
 func setupTestServer(t *testing.T) (*Server, string) {

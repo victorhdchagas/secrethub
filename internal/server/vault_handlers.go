@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/publiquei/secrethub/internal/vault"
+	"github.com/victorhdchagas/secrethub/internal/vault"
 )
 
 func (s *Server) handleGetVault(w http.ResponseWriter, r *http.Request) {

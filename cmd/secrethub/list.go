@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/publiquei/secrethub/internal/vault"
+	"github.com/victorhdchagas/secrethub/internal/vault"
 )
 
 func listCmd() {

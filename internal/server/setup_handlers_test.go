@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/pquerna/otp/totp"
-	"github.com/publiquei/secrethub/internal/auth"
+	"github.com/victorhdchagas/secrethub/internal/auth"
 )
 
 func TestHandleSetup_Password(t *testing.T) {

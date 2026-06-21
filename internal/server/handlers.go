@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/publiquei/secrethub/internal/auth"
-	"github.com/publiquei/secrethub/internal/vault"
+	"github.com/victorhdchagas/secrethub/internal/auth"
+	"github.com/victorhdchagas/secrethub/internal/vault"
 )
 
 type loginPageData struct {

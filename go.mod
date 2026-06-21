@@ -1,4 +1,4 @@
-module github.com/publiquei/secrethub
+module github.com/victorhdchagas/secrethub
 
 go 1.22.0
 

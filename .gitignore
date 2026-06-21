@@ -1,3 +1,4 @@
 bin/
+plan/
 /coverage.out
 /coverage.html
