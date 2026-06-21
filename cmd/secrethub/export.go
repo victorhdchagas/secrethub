@@ -16,7 +16,7 @@ func exportCmd() {
 	fs := flag.NewFlagSet("export", flag.ExitOnError)
 	dotenv := fs.Bool("dotenv", false, "Write to .env file instead of stdout")
 	run := fs.Bool("run", false, "Execute a command with vault vars as env")
-	fs.Parse(os.Args[2:])
+	_ = fs.Parse(os.Args[2:]) // intentionally discarded — flag.ExitOnError
 
 	args := fs.Args()
 	if len(args) < 1 {

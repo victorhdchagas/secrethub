@@ -1,0 +1,17 @@
+linters:
+  enable:
+    - errcheck
+    - govet
+    - staticcheck
+    - gosimple
+
+issues:
+  exclude-rules:
+    - linters: [errcheck]
+      text: "Error return value of .*(Execute|Encode).* is not checked"
+      source: "// intentionally discarded"
+
+    - linters: [errcheck]
+      path: "_test.go"
+
+

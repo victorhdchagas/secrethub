@@ -1,4 +1,3 @@
-/secrethub
-/secrethub-arm64
+bin/
 /coverage.out
 /coverage.html

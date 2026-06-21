@@ -14,7 +14,7 @@ import (
 func setupCmd() {
 	fs := flag.NewFlagSet("setup", flag.ExitOnError)
 	force := fs.Bool("force", false, "Overwrite existing setup")
-	fs.Parse(os.Args[2:])
+	_ = fs.Parse(os.Args[2:]) // intentionally discarded — flag.ExitOnError
 
 	dir := secrethubDir()
 	ctx := context.Background()

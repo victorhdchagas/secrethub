@@ -12,7 +12,7 @@ func serveCmd() {
 	fs := flag.NewFlagSet("serve", flag.ExitOnError)
 	port := fs.Int("port", 4949, "Server port")
 	host := fs.String("host", "127.0.0.1", "Bind address")
-	fs.Parse(os.Args[2:])
+	_ = fs.Parse(os.Args[2:]) // intentionally discarded — flag.ExitOnError
 
 	if *host == "0.0.0.0" {
 		fmt.Fprintln(os.Stderr, "Error: binding to 0.0.0.0 is forbidden for security reasons")
