@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/boombuler/barcode"
 	"github.com/boombuler/barcode/qr"
 	"github.com/victorhdchagas/secrethub/internal/auth"
 	"github.com/victorhdchagas/secrethub/internal/vault"
@@ -189,6 +190,11 @@ func (s *Server) handleSetupQR(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	scaled, err := barcode.Scale(code, 256, 256)
+	if err != nil {
+		http.Error(w, "QR scale error", http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "image/png")
-	png.Encode(w, code) // intentionally discarded
+	png.Encode(w, scaled) // intentionally discarded
 }

@@ -66,7 +66,8 @@
 
       <form x-on:submit.prevent="verifyTotp" style="margin-top:16px">
         <label for="code">TOTP Code</label>
-        <input type="text" id="code" x-model="totpCode" inputmode="numeric" autocomplete="one-time-code" required>
+        <input type="text" id="code" x-model="totpCode" inputmode="numeric" autocomplete="one-time-code" required
+               x-effect="step === 2 && $nextTick(() => $el.focus())">
         <button type="submit" class="confirm-btn" x-text="loading ? 'Verifying...' : 'Verify & Continue'" :disabled="loading"></button>
       </form>
     </div>
