@@ -170,9 +170,29 @@ secrethub serve --tls-cert /etc/letsencrypt/live/example.com/fullchain.pem \
 
 ### Docker
 
+Imagem publicada no Docker Hub (multi-arch `linux/amd64` + `linux/arm64`):
+
 ```bash
-# Build and start (data persists at ~/.secrethub-docker by default)
+# Pull direto (Raspberry Pi 3/4/5, x86_64 — detecta arquitetura automaticamente)
+docker pull victorhdchagas/secrethub:latest
+
+# Run standalone (data em ~/.secrethub-docker no host)
+docker run -d --name secrethub \
+  -p 127.0.0.1:4949:4949 \
+  -v ${HOME}/.secrethub-docker:/home/secrethub/.secrethub \
+  --restart unless-stopped \
+  victorhdchagas/secrethub:latest
+
+# Ou via compose (com Cloudflare Tunnel opcional)
 docker compose -f docker/docker-compose.yml up -d
+```
+
+Tags disponíveis: `latest` (rolling) e `v0.1.0` (versão atual).
+
+Para build local sem o pull:
+
+```bash
+docker compose -f docker/docker-compose.yml up -d --build
 
 # Custom data location
 SECRETHUB_DATA=/mnt/nas/secrethub docker compose -f docker/docker-compose.yml up -d

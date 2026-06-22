@@ -1,9 +1,12 @@
 FROM golang:1.22-alpine3.21 AS builder
 WORKDIR /app
+ARG TARGETOS=linux
+ARG TARGETARCH=amd64
+ENV CGO_ENABLED=0
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN go build -o secrethub ./cmd/secrethub
+RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags="-s -w" -o secrethub ./cmd/secrethub
 
 FROM alpine:3.21
 RUN addgroup -S -g 1000 secrethub \
