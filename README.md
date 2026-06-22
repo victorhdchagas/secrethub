@@ -64,6 +64,22 @@ secrethub export production --run "npm run deploy"
 # Sets vault vars as environment variables
 ```
 
+### 📥 .env Import
+
+Import an existing `.env` file (or pasted content) into any vault via the web dashboard:
+
+- **Drag-and-drop** a `.env` file directly into the dropzone inside an open vault
+- **Paste** `KEY=value` lines into the textarea
+- Parser tolerates `# comments`, single/double quotes, `export prefix`, empty lines, and `KEY=` without value
+- Existing keys are **overwritten**, new keys are added — a toast reports the count
+
+Import endpoint also available via API:
+
+```bash
+curl -X POST http://127.0.0.1:4949/api/vault/production/import \
+  --data-binary @.env
+```
+
 ### 🔑 Machine Tokens (CI/CD)
 
 Generate tokens with scoped access for automated pipelines:
@@ -87,6 +103,7 @@ Built with Alpine.js — no build step, no bundler. Dark mode by default.
 - Real-time vault editing
 - Copy individual keys or entire vault
 - Export as `.env` download
+- Import `.env` via drag-and-drop or paste
 - Session auto-refresh with visible expiry in Brazil time
 - Machine token management in Settings
 
