@@ -181,6 +181,10 @@ function dashboardApp() {
       const data = await this.req('POST', '/tokens')
       if (!data) return
       this.newToken = data.token
+    },
+
+    closeTokenModal() {
+      this.newToken = ''
       this.loadTokens()
     },
 

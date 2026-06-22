@@ -39,9 +39,11 @@
     </aside>
 
     <main>
-      <div class="loader" x-show="loading">
-        <div class="spinner"></div>
-      </div>
+      <template x-if="loading">
+        <div class="loader">
+          <div class="spinner"></div>
+        </div>
+      </template>
 
       <div x-show="view === 'home'" x-transition.opacity.duration.200ms>
         <h2>Welcome to SecretHub</h2>
@@ -108,7 +110,7 @@
           <p class="warning">⚠️ Este token será mostrado apenas uma vez. Copie agora!</p>
           <code class="token-value" x-text="newToken"></code>
           <button x-on:click="copyToken" style="margin-left:8px">📋 Copiar</button>
-          <button x-on:click="newToken = ''" style="margin-left:8px">Fechar</button>
+          <button x-on:click="closeTokenModal" style="margin-left:8px">Fechar</button>
         </div>
       </div>
     </main>
