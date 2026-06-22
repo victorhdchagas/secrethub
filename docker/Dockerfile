@@ -1,7 +1,7 @@
-FROM golang:1.22-alpine3.21 AS builder
+FROM --platform=$BUILDPLATFORM golang:1.22-alpine3.21 AS builder
 WORKDIR /app
-ARG TARGETOS=linux
-ARG TARGETARCH=amd64
+ARG TARGETOS
+ARG TARGETARCH
 ENV CGO_ENABLED=0
 COPY go.mod go.sum ./
 RUN go mod download
