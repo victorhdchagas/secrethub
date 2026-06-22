@@ -81,6 +81,23 @@
         </form>
         <div class="save-bar">
           <button x-on:click="saveVault" :disabled="loading">💾 Save</button>
+          <button x-on:click="showImport = !showImport" style="margin-left:8px">📥 Import .env</button>
+        </div>
+
+        <div x-show="showImport" x-transition.opacity.duration.200ms class="import-panel"
+             @dragover.prevent="dragActive = true" @dragleave.prevent="dragActive = false"
+             @drop.prevent="handleDrop($event)">
+          <div class="dropzone" :class="{ 'dropzone-active': dragActive }">
+            <p x-show="!dragActive">Arraste um arquivo <code>.env</code> aqui</p>
+            <p x-show="dragActive">⬇ Solte o arquivo</p>
+          </div>
+          <p style="text-align:center;font-size:12px;color:#8b949e;margin:4px 0">— ou cole o conteúdo —</p>
+          <textarea x-model="importText" rows="6" placeholder="KEY=value&#10;OTHER=123"
+                    class="import-textarea"></textarea>
+          <div class="save-bar">
+            <button x-on:click="importEnv()" :disabled="loading || !importText.trim()">Importar</button>
+            <button x-on:click="showImport = false; importText = ''" style="margin-left:8px">Cancelar</button>
+          </div>
         </div>
       </div>
 

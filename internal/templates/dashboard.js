@@ -13,6 +13,9 @@ function dashboardApp() {
     toastTimer: null,
     sessionExpiry: '',
     _navLock: false,
+    showImport: false,
+    importText: '',
+    dragActive: false,
 
     init() {
       this.loadVaults()
@@ -165,6 +168,42 @@ function dashboardApp() {
       location.hash = '#/settings'
       this._navLock = false
       this.loadTokens()
+    },
+
+    // ── .env Import ──
+
+    async handleDrop(event) {
+      this.dragActive = false
+      const file = event.dataTransfer.files && event.dataTransfer.files[0]
+      if (!file) return
+      if (file.size > 1024 * 1024) { this.showToast('Arquivo > 1MB'); return }
+      this.importText = await file.text()
+      this.showToast('Arquivo carregado: ' + file.name)
+    },
+
+    async importEnv() {
+      const text = this.importText.trim()
+      if (!text || !this.vaultName) return
+      this.loading = true
+      try {
+        const res = await fetch('/api/vault/' + encodeURIComponent(this.vaultName) + '/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: text
+        })
+        this.updateExpiry(res.headers)
+        if (res.status === 401) { window.location.href = '/'; return }
+        if (!res.ok) { this.showToast(await res.text()); return }
+        const stats = await res.json()
+        this.showToast('Importado: ' + stats.created + ' novas, ' + stats.overwritten + ' atualizadas')
+        this.showImport = false
+        this.importText = ''
+        await this.loadVaultData(this.vaultName)
+      } catch {
+        this.showToast('Erro de rede')
+      } finally {
+        this.loading = false
+      }
     },
 
     // ── Machine Tokens ──

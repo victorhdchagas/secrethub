@@ -81,6 +81,7 @@ func (s *Server) routes() {
 	s.mux.Handle("GET /api/vaults", s.protected(s.handleListVaults))
 	s.mux.Handle("GET /api/vault/{name}", s.protected(s.handleGetVault))
 	s.mux.Handle("POST /api/vault/{name}", s.protected(s.handleSaveVault))
+	s.mux.Handle("POST /api/vault/{name}/import", s.protected(s.handleImportVault))
 	s.mux.Handle("DELETE /api/vault/{name}", s.protected(s.handleDeleteVault))
 	s.mux.Handle("PUT /api/vault/{name}/keys/{key}", s.protected(s.handlePutKey))
 	s.mux.Handle("DELETE /api/vault/{name}/keys/{key}", s.protected(s.handleDeleteKey))

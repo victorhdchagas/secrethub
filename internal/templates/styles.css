@@ -129,3 +129,15 @@ th { color: #8b949e; font-weight: 500; }
   display: block; word-break: break-all; background: #0d1117; border: 1px solid #30363d;
   border-radius: 4px; padding: 8px; font-size: 12px; font-family: monospace; margin-bottom: 8px;
 }
+
+/* .env Import */
+.import-panel { margin-top: 16px; padding: 12px; background: #0d1117; border: 1px solid #30363d; border-radius: 8px; }
+.dropzone {
+  border: 2px dashed #30363d; border-radius: 8px; padding: 24px; text-align: center;
+  color: #8b949e; transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.dropzone-active { border-color: #58a6ff; color: #58a6ff; background: #1f6feb15; }
+.import-textarea {
+  width: 100%; background: #0d1117; border: 1px solid #30363d; border-radius: 6px;
+  padding: 8px; color: #c9d1d9; font-family: monospace; font-size: 13px; resize: vertical;
+}
