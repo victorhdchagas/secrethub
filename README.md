@@ -111,7 +111,7 @@ Built with Alpine.js — no build step, no bundler. Dark mode by default.
 
 ```
 secrethub serve [--port 4949] [--host 127.0.0.1] [--tls-cert file --tls-key file]
-                            Start web server (default :4949)
+                             Start web server (default :4949)
 secrethub setup              CLI setup wizard
 secrethub export <name>      Export vault as KEY=VALUE
 secrethub export <name> --dotenv   Write .env file
@@ -171,25 +171,49 @@ secrethub serve --tls-cert /etc/letsencrypt/live/example.com/fullchain.pem \
 ### Docker
 
 ```bash
-# Build and start
+# Build and start (data persists at ~/.secrethub-docker by default)
 docker compose -f docker/docker-compose.yml up -d
 
-# Quick disposable test (temp data dir, cleans up on Ctrl+C)
-mkdir -p /tmp/secrethub-test
-docker compose -f docker/docker-compose.yml run --rm \
-  -v /tmp/secrethub-test:/root/.secrethub \
-  -p 4949:4949 \
-  secrethub
+# Custom data location
+SECRETHUB_DATA=/mnt/nas/secrethub docker compose -f docker/docker-compose.yml up -d
 
-# Stop compose services
+# Stop
 docker compose -f docker/docker-compose.yml down
-
-# Multi-arch build
-docker buildx build --platform linux/amd64,linux/arm64 \
-  -f docker/Dockerfile -t secrethub .
 ```
 
 Acesse em [http://localhost:4949](http://localhost:4949) — o setup web aparece na primeira execução.
+
+#### Data location & backup
+
+O vault e metadados ficam em `${SECRETHUB_DATA:-~/.secrethub-docker}` no host:
+
+```
+~/.secrethub-docker/
+├── master.hash          bcrypt hash
+├── totp.secret          TOTP secret (encrypted)
+├── recovery.hashes      SHA-256 of recovery codes
+├── salt                 argon2id salt (required to decrypt vaults!)
+├── machine.tokens       CI/CD tokens (encrypted JSON)
+└── vaults/
+    └── production.enc   Encrypted vault (XChaCha20-Poly1305)
+```
+
+**Todos os arquivos já estão cifrados ou hasheados** — safe para backup em cloud direto:
+
+```bash
+rclone copy ~/.secrethub-docker remote:secrethub-backup
+restic backup ~/.secrethub-docker
+```
+
+> ⚠️ Faça backup do **diretório inteiro**. Sem o `salt`, o vault é indecifrável mesmo com a master password correta.
+
+#### UID requirement
+
+O container roda como UID 1000. Se seu user no host não é UID 1000:
+
+```bash
+mkdir -p ~/.secrethub-docker && sudo chown 1000:1000 ~/.secrethub-docker
+```
 
 ---
 

@@ -6,7 +6,7 @@ services:
     ports:
       - "127.0.0.1:4949:4949"
     volumes:
-      - secrethub-data:/root/.secrethub
+      - ${SECRETHUB_DATA:-${HOME}/.secrethub-docker}:/home/secrethub/.secrethub
     environment:
       - TZ=America/Sao_Paulo
     restart: unless-stopped
@@ -26,6 +26,3 @@ services:
   #     - TUNNEL_TOKEN=${CF_TUNNEL_TOKEN}
   #   restart: unless-stopped
   #   network_mode: service:secrethub
-
-volumes:
-  secrethub-data:
